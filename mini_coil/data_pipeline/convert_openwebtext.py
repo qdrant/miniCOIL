@@ -21,8 +21,10 @@ import tarfile
 import glob
 import tqdm
 import gzip
+import hashlib
 from typing import Iterable
 
+from sentence_splitter import SentenceSplitter
 
 from mini_coil.settings import DATA_DIR
 
@@ -37,22 +39,31 @@ def iterate_archives() -> Iterable[str]:
 def read_files_from_tar_xz(archive_path: str) -> Iterable[str]:
     with tarfile.open(archive_path, "r:xz") as tar:
         for member in tar.getmembers():
-            yield tar.extractfile(member).read().decode("utf-8")
+            yield member.name, tar.extractfile(member).read().decode("utf-8")
 
 
 def read_texts() -> Iterable[str]:
     for archive in iterate_archives():
-        for text in read_files_from_tar_xz(archive):
-            yield text
+        for file_name, text in read_files_from_tar_xz(archive):
+            file_hash = compute_hash(file_name)
+            yield file_hash, text
+
+
+def compute_hash(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def main():
     output_file = os.path.join(DATA_DIR, "openwebtext.txt.gz")
 
+    splitter = SentenceSplitter(language='en')
+
     with gzip.open(output_file, "wt") as f:
-        for text in tqdm.tqdm(read_texts()):
-            f.write(text)
-            f.write("\n")
+        for file_hash, text in tqdm.tqdm(read_texts()):
+            for sentence in splitter.split(text):
+                    sentence = sentence.strip()
+                    if len(sentence) > 0:
+                        f.write(f"{file_hash}\t{sentence}\n")
 
 
 if __name__ == "__main__":

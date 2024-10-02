@@ -31,18 +31,22 @@ def read_texts(path: str) -> Iterable[str]:
         for line in tqdm.tqdm(f):
             line = line.strip()
             if len(line) > 0:
-                yield line
+                document_hash, text = line.split("\t", 1)
+                yield document_hash, text
 
 
 def iter_batch(iterable, size):
     batch = []
-    for item in iterable:
+    hashes = []
+    for document_hash, item in iterable:
         batch.append(item)
+        hashes.append(document_hash)
         if len(batch) >= size:
-            yield batch
+            yield hashes, batch
             batch = []
+            hashes = []
     if len(batch) > 0:
-        yield batch
+        yield hashes, batch
 
 
 def main():
@@ -67,11 +71,18 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    text_np_emb_file = NpyAppendArray(output_file, delete_if_exists=True)
+    npy_file = f"{output_file}.npy"
+    hash_file = f"{output_file}.txt"
 
-    for batch in iter_batch(read_texts(args.input_file), batch_size):
-        text_embeddings = model.encode(batch)
-        text_np_emb_file.append(text_embeddings)
+    text_np_emb_file = NpyAppendArray(npy_file, delete_if_exists=True)
+
+   with open(hash_file, 'w') as hash_output:
+        for hashes, batch in iter_batch(read_texts(args.input_file), batch_size):
+            text_embeddings = model.encode(batch)
+            text_np_emb_file.append(text_embeddings)
+            
+            for hash_value in hashes:
+                hash_output.write(f"{hash_value}\n")
 
     text_np_emb_file.close()
 
