@@ -1,7 +1,10 @@
 import argparse
+from collections import defaultdict
 from typing import List
 import tqdm
+import json
 
+from py_rust_stemmers import SnowballStemmer
 from nltk import WordNetLemmatizer
 
 
@@ -27,17 +30,22 @@ def main():
 
     target_vocab = [word for idx, word in enumerate(source_vocab) if len(word) > (5 if idx < 100 else 2)]
 
+    stemmer = SnowballStemmer("english")
     lemmatizer = WordNetLemmatizer()
 
-    seen_normalized_words = set()
+    normalized_words = defaultdict(set)
+
+    for word in tqdm.tqdm(target_vocab):
+        anchor_word = stemmer.stem_word(word)
+        lemmatized_word = lemmatizer.lemmatize(word)
+
+        normalized_words[anchor_word].add(word)
+        normalized_words[anchor_word].add(lemmatized_word)
+
+    normalized_words = {k: list(v) for k, v in normalized_words.items()}
 
     with open(args.output_file, "w") as f:
-        for word in tqdm.tqdm(target_vocab):
-            normalized_word = lemmatizer.lemmatize(word)
-            if normalized_word in seen_normalized_words:
-                continue
-            seen_normalized_words.add(normalized_word)
-            f.write(f"{normalized_word}\n")
+        json.dump(normalized_words, f, indent=4)
 
 
 if __name__ == "__main__":

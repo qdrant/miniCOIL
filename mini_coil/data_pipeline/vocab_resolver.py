@@ -183,6 +183,8 @@ class VocabResolver:
 
         """
 
+        # deep copy of token_ids
+        token_ids = token_ids.copy()
         tokens = self.convert_ids_to_tokens(token_ids)
         tokens_mapping = self._reconstruct_bpe(enumerate(tokens))
 

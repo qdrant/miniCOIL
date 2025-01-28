@@ -51,7 +51,7 @@ def main():
     embeddings = np.array(list(encode_and_filter(
         model_name=model_name,
         word=word,
-        sentences=sentences
+        docs=sentences
     )))
 
     print(embeddings.shape)

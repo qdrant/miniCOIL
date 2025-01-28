@@ -55,11 +55,7 @@ def load_sentences(collection_name: str, ids: List[str]) -> List[dict]:
             with_payload=True,
             with_vectors=False,
         )
-
-        batch_points = dict(
-            (point.id, point.payload)
-            for point in points
-        )
+        batch_points = dict((point.id, point.payload) for point in points)
         points_to_abstracts.update(batch_points)
 
     result = []
@@ -68,9 +64,14 @@ def load_sentences(collection_name: str, ids: List[str]) -> List[dict]:
             print(f"Point {point_id} not found in collection {collection_name}")
             exit(1)
 
+        payload = points_to_abstracts[point_id]
+        ln = payload["line_number"]
+
         result.append({
             "id": point_id,
-            **points_to_abstracts[point_id]
+            "line_number": ln,
+            "sentence": payload["sentence"],
+            "abs_hash": payload["abs_hash"]
         })
 
     return result

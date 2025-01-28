@@ -1,6 +1,9 @@
 import argparse
 import os
 
+import json
+from typing import List, Dict
+
 import tqdm
 import torch
 import numpy as np
@@ -11,12 +14,9 @@ from mini_coil.model.encoder import Encoder
 from mini_coil.model.word_encoder import WordEncoder
 
 
-def load_vocab(vocab_path):
-    vocab = []
-    with open(vocab_path, 'r') as f:
-        for line in f:
-            word = line.strip()
-            vocab.append(word)
+def load_vocab(vocab_path) -> Dict[str, List[str]]:
+    with open(vocab_path) as f:
+        vocab = json.load(f)
     return vocab
 
 
@@ -32,7 +32,7 @@ def main():
     vocab = load_vocab(args.vocab_path)
     filtered_vocab = []
 
-    for word in vocab:
+    for word in vocab.keys():
         if word in english_stopwords:
             continue
         model_path = os.path.join(args.models_dir, f"model-{word}.ptch")
@@ -61,6 +61,9 @@ def main():
     print("vocab_size", vocab_size)
 
     combined_params_numpy = combined_params.numpy()
+
+    # Make sure the output directory exists
+    os.makedirs(os.path.dirname(args.output_path), exist_ok=True)
 
     # Save numpy file as well
     np.save(args.output_path + ".npy", combined_params_numpy)

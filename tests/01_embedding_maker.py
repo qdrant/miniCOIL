@@ -20,6 +20,9 @@ def main():
     parser.add_argument("--word-encoder-path", type=str, required=True, help="Path to the word encoder file (minicoil)")
     parser.add_argument("--use-cuda", action="store_true", default=False, help="Use CUDA for jina2base")
     parser.add_argument("--minicoil-test-word", type=str, required=True, help="Word to test for minicoil")
+
+    parser.add_argument("--dim", type=int, default=4, help="Output dimension for minicoil")
+
     args = parser.parse_args()
 
     with open(args.input_file, "r") as f:
@@ -52,7 +55,7 @@ def main():
         model_minicoil = MiniCOIL(
             vocab_path=args.vocab_path,
             word_encoder_path=args.word_encoder_path,
-            sentence_encoder_model="jinaai/jina-embeddings-v2-small-en-tokens"
+            sentence_encoder_model="jinaai/jina-embeddings-v2-small-en-tokens",
         )
         emb_mc_list = []
         for line in lines:

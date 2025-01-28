@@ -2,8 +2,9 @@
 End-to-end inference of the miniCOIL model.
 This includes sentence transformer, vocabulary resolver, and the coil post-encoder.
 """
+import itertools
 import json
-from typing import List
+from typing import List, Iterable
 
 import ipdb
 import numpy as np
@@ -21,7 +22,6 @@ class MiniCOIL:
             vocab_path: str,
             word_encoder_path: str,
             input_dim: int = 512,
-            output_dim: int = 4,
             sentence_encoder_model: str = "jinaai/jina-embeddings-v2-small-en-tokens"
     ):
         self.sentence_encoder_model = sentence_encoder_model
@@ -32,7 +32,7 @@ class MiniCOIL:
         self.vocab_resolver.load_json_vocab(vocab_path)
 
         self.input_dim = input_dim
-        self.output_dim = output_dim
+        self.output_dim = None
 
         self.word_encoder_path = word_encoder_path
 
@@ -44,17 +44,19 @@ class MiniCOIL:
         weights = np.load(self.word_encoder_path)
         self.word_encoder = EncoderNumpy(weights)
         assert self.word_encoder.input_dim == self.input_dim
-        assert self.word_encoder.output_dim == self.output_dim
+        self.output_dim = self.word_encoder.output_dim
 
-    def encode(self, sentences: list) -> List[dict]:
+    def encode(self, sentences: Iterable[str], parallel=None) -> List[dict]:
         """
         Encode the given word in the context of the sentences.
         """
 
+        sentences1, sentences2 = itertools.tee(sentences, 2)
+
         result = []
 
         with torch.no_grad():
-            for embedding, sentence in zip(self.sentence_encoder.embed(sentences, batch_size=4), sentences):
+            for embedding, sentence in zip(self.sentence_encoder.embed(sentences1, batch_size=4, parallel=parallel), sentences2):
                 token_ids = np.array(self.sentence_encoder.tokenize([sentence])[0].ids)
 
                 word_ids, counts, oov, forms = self.vocab_resolver.resolve_tokens(token_ids)
@@ -105,6 +107,7 @@ def main():
     parser.add_argument("--vocab-path", type=str)
     parser.add_argument("--word-encoder-path", type=str)
     parser.add_argument("--sentences", type=str, nargs='+')
+    parser.add_argument("--dim", type=int, default=4)
     args = parser.parse_args()
 
     # Catch exception with ipdb
@@ -112,7 +115,7 @@ def main():
     with ipdb.launch_ipdb_on_exception():
         model = MiniCOIL(
             vocab_path=args.vocab_path,
-            word_encoder_path=args.word_encoder_path
+            word_encoder_path=args.word_encoder_path,
         )
 
         for embeddings in model.encode(args.sentences):

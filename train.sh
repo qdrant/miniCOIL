@@ -33,10 +33,10 @@ LMODEL=mxbai-large
 #  --collection-name ${COLLECTION_NAME}
 
 # Sample sentences with specified words and apply dimensionality reduction
-python -m mini_coil.data_pipeline.compress_dimentions \
-  --output-dir data/umap-"${SAMPLES}"-"${NEIGHBORS}"-"${DIM}"d-"${LMODEL}" \
-  --sample-size "${SAMPLES}" --dim "${DIM}" --word "${TARGET_WORD}" --overwrite \
-  --limit ${NEIGHBORS} --n_neighbours ${NEIGHBORS}
+#python -m mini_coil.data_pipeline.compress_dimentions \
+#  --output-dir data/umap-"${SAMPLES}"-"${NEIGHBORS}"-"${DIM}"d-"${LMODEL}" \
+#  --sample-size "${SAMPLES}" --dim "${DIM}" --word "${TARGET_WORD}" --overwrite \
+#  --limit ${NEIGHBORS} --n_neighbours ${NEIGHBORS}
 
 echo "Compressed dimentions"
 ## Download sampled sentences
