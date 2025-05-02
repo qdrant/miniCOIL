@@ -12,7 +12,7 @@ from mini_coil.data_pipeline.stopwords import english_stopwords
 from mini_coil.data_pipeline.vocab_resolver import VocabResolver
 from mini_coil.model.encoder import Encoder
 from mini_coil.model.word_encoder import WordEncoder
-
+from py_rust_stemmers import SnowballStemmer
 
 def load_vocab(vocab_path) -> Dict[str, List[str]]:
     with open(vocab_path) as f:
@@ -27,17 +27,25 @@ def main():
     parser.add_argument("--output-path", type=str)
     parser.add_argument("--input-dim", type=int, default=512)
     parser.add_argument("--output-dim", type=int, default=4)
+
+    stemmer = SnowballStemmer("english")
     args = parser.parse_args()
 
     vocab = load_vocab(args.vocab_path)
     filtered_vocab = []
+    stemmed_words_vocab = set()
 
     for word in vocab.keys():
         if word in english_stopwords:
             continue
-        model_path = os.path.join(args.models_dir, f"model-{word}.ptch")
-        if os.path.exists(model_path):
-            filtered_vocab.append(word)
+        stemmed_word = stemmer.stem_word(word)
+        if stemmed_word in stemmed_words_vocab:
+            continue
+        else:
+            stemmed_words_vocab.add(stemmed_word)
+            model_path = os.path.join(args.models_dir, f"model-{word}.ptch")
+            if os.path.exists(model_path):
+                filtered_vocab.append(word)
 
     params = [torch.zeros(args.input_dim, args.output_dim)]  # Extra zero tensor, as first word is vocab starts from 1
 
