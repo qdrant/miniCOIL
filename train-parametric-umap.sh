@@ -6,14 +6,13 @@ set -o pipefail # exit on error in pipe
 
 CURRENT_DIR=$(pwd -L)
 #COLLECTION_NAME=$1
-TARGET_WORD=${1:-"bat"}
-DIM=2
+TARGET_WORD=${1:-"calcul"}
+DIM=4
 SAMPLES=8000
-LMODEL=mxbai-large
 IMODEL=jina-small
 
 
-INPUT_DIR=data/triplets-${SAMPLES}-${LMODEL}
+INPUT_DIR=data/parametric-umap-${SAMPLES}
 
 MODEL_DIR=${INPUT_DIR}-${IMODEL}-${DIM}-augmented
 
@@ -21,13 +20,10 @@ WORD_MODELS_DIR=${MODEL_DIR}/word-models
 FULL_MODEL_DIR=${MODEL_DIR}/full-models
 
 
-generate_distance_matrix() {
-  echo "Generate distance matrix for given word"
-  python -m mini_coil.data_pipeline.distance_matrix \
-         --word ${TARGET_WORD} \
-         --output-matrix ${INPUT_DIR}/distance_matrix/dm-${TARGET_WORD}.npy \
-         --output-sentences ${INPUT_DIR}/target_sentences/sentences-${TARGET_WORD}.jsonl \
-         --sample-size ${SAMPLES}
+sample_data() {
+  python -m mini_coil.data_pipeline.sample_data \
+    --output-file ${INPUT_DIR}/target_sentences/sentences-${TARGET_WORD}.jsonl \
+    --sample-size ${SAMPLES}
 }
 
 
@@ -53,21 +49,18 @@ encode_sentences() {
 
 train_encoder() {
   #Train encoder **for each word**
-  python -m mini_coil.training.train_word_triplet \
+  CUDA_VISIBLE_DEVICES=-1 python -m mini_coil.training.train_word_parametric_umap \
     --embedding-path ${INPUT_DIR}-${IMODEL}/word-emb-${TARGET_WORD}.npy \
-    --line-numbers-path ${INPUT_DIR}-${IMODEL}/line-numbers-${TARGET_WORD}.npy \
-    --distance-matrix-path ${INPUT_DIR}/distance_matrix/dm-${TARGET_WORD}.npy \
     --output-dim ${DIM} \
-    --output-path ${MODEL_DIR}/model-${TARGET_WORD}.ptch \
-    --log-dir ${INPUT_DIR}-${IMODEL}-augmented/train_logs/log_"${TARGET_WORD}" \
-    --epochs 60
-  echo "Trained model"
+    --output-model-path ${MODEL_DIR}/model-${TARGET_WORD}.npy \
+    --output-embeddings-path ${MODEL_DIR}/embeddings-${TARGET_WORD}.npy
+  echo "Trained model: ${MODEL_DIR}/model-${TARGET_WORD}.npy"
 }
 
 
 combine_models() {
   ## Merge encoders for each word into a single model
-  python -m mini_coil.data_pipeline.combine_models \
+  python -m mini_coil.data_pipeline.combine_parametric_umap_models \
     --models-dir ${MODEL_DIR} \
     --vocab-path "${CURRENT_DIR}/data/30k-vocab-filtered.json" \
     --output-path ${FULL_MODEL_DIR}/model \
@@ -87,7 +80,7 @@ embed_sentences() {
   # Embed a bunch of sentences
   python -m tests.embed_minicoil \
     --vocab-path ${FULL_MODEL_DIR}/model.vocab \
-    --word-encoder-path ${FULL_MODEL_DIR}/model.npy \
+    --word-encoder-path ${FULL_MODEL_DIR}/model.npz \
     --input-file data/validation/${TARGET_WORD}-validation.txt \
     --word ${TARGET_WORD} \
     --output ${WORD_MODELS_DIR}/validation/${TARGET_WORD}-validation.npy
@@ -109,25 +102,25 @@ cleaenup() {
 }
 
 main() {
-  # Skip if the model file already exists
-  MODEL_FILE_NAME=${MODEL_DIR}/model-${TARGET_WORD}.ptch
+  # # Skip if the model file already exists
+  # MODEL_FILE_NAME=${MODEL_DIR}/model-${TARGET_WORD}.ptch
 
-  if [ -f "$MODEL_FILE_NAME" ]; then
-    echo "Model file already exists. Skipping training."
-    exit 0
-  fi
+  # if [ -f "$MODEL_FILE_NAME" ]; then
+  #   echo "Model file already exists. Skipping training."
+  #   exit 0
+  # fi
 
 
-  generate_distance_matrix
-  augment_data
+  # sample_data
+  # augment_data
   encode_sentences
   train_encoder
-#  combine_models
-#  # Validate the model
-#  download_validation_data
-#  embed_sentences
-#  visualize_embeddings
-  cleaenup
+  combine_models
+  #  # Validate the model
+  #  download_validation_data
+   embed_sentences
+   visualize_embeddings
+  # cleaenup
 }
 
 main "$@"
