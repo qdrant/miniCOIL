@@ -84,3 +84,5 @@ class WordEncoder(nn.Module):
         compressed = self.activation(word_embeddings @ self.encoder_weights)
         return compressed
         # return self.dequant(compressed)
+
+

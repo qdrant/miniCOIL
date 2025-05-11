@@ -29,6 +29,7 @@ seaborn = "^0.13.2"
 fastembed = { git = "https://github.com/qdrant/fastembed.git", branch = "token-embeddings" }
 nltk = "^3.9.1"
 py-rust-stemmers = "^0.1.3"
+tensorflow = "^2.19.0"
 
 
 [build-system]

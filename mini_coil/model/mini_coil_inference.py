@@ -8,6 +8,7 @@ from typing import List, Iterable
 
 import ipdb
 import numpy as np
+from mini_coil.model.multilayer_encoder import MultiLayerEncoder
 import torch
 from fastembed.late_interaction.token_embeddings import TokenEmbeddingsModel
 
@@ -38,13 +39,34 @@ class MiniCOIL:
 
         self.word_encoder = None
 
-        self.load_encoder_numpy()
+        if self.word_encoder_path.endswith(".npz"):
+            self.load_multilayer_encoder_numpy()
+        else:
+            self.load_encoder_numpy()
 
     def load_encoder_numpy(self):
         weights = np.load(self.word_encoder_path)
         self.word_encoder = EncoderNumpy(weights)
         assert self.word_encoder.input_dim == self.input_dim
         self.output_dim = self.word_encoder.output_dim
+
+
+    def load_multilayer_encoder_numpy(self):
+        print("Loading multilayer encoder from numpy")
+
+        weights = []
+
+        with np.load(self.word_encoder_path) as data:
+            weights.append(data['encoder_weights_0'])
+            weights.append(data['encoder_weights_1'])
+            weights.append(data['encoder_weights_2'])
+
+        self.word_encoder = MultiLayerEncoder(weights, make_sphere=True)
+
+        self.output_dim = self.word_encoder.output_dim
+
+        assert self.word_encoder.input_dim == self.input_dim
+
 
     def encode(self, sentences: Iterable[str], parallel=None) -> List[dict]:
         """
