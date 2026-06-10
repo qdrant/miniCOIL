@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10,<3.13"
-pyarrow = "^17.0.0"
+pyarrow = ">=17,<24"
 pandas = "^2.2.2"
 ipdb = "^0.13.13"
 pystemmer = "^2.2.0.1"
